@@ -1,0 +1,279 @@
+
+#----------------- Section 2: Data Preparations 
+
+#--------------- S2_11:Factors
+getwd()
+
+fin <- read.csv("Future 500.csv")
+fin <- read.csv("Future 500.csv", na.strings=c("")) # Better
+head(fin)
+tail(fin)
+str(fin)
+summary(fin)
+
+#Changing from non-factor to factor:
+fin$ID <- factor(fin$ID)
+
+fin$Inception <- factor(fin$Inception)
+
+#--------------- S2_12: The Factor Variable Trap
+#Converting into Numerics For Characters:
+a <- c("12","13","14","12","12")
+typeof(a)
+
+b <- as.numeric(a)
+b
+typeof(b)
+
+#Converting into Numerics For Factors:
+z <- factor(c("12","13","14","12","12"))
+z
+typeof(z)
+
+y <- as.numeric(z)
+y
+typeof(y)
+
+#Correct way:
+x<- as.numeric(as.character(z))
+
+#--------------- S2_13:FVT Example
+
+head(fin)
+str(fin)
+
+#create artificial problem: change int to Factor
+# fin$Profit <- factor(fin$Profit)
+
+#wrong solution from changing factor to int
+# fin$Profit <- as.numeric(fin$Profit)
+
+
+#--------------- S2_14: gsub() and sub()
+#sub replace first instance
+#gsub replace all instance
+
+fin$Expenses <- gsub(" Dollars","",fin$Expenses)
+fin$Expenses <- gsub(",","",fin$Expenses)
+head(fin)
+str(fin) #Expenses is now chr
+
+fin$Revenue <- gsub("\\$","",fin$Revenue) # "$" is a special sympbol, you have to use an escape sequence
+fin$Revenue <- gsub(",","",fin$Revenue)
+head(fin)
+str(fin) #Revenue is now chr
+
+fin$Growth <- gsub("%","", fin$Growth)
+head(fin)
+str(fin) #Growth is now chr
+
+fin$Expenses <- as.numeric(fin$Expenses)
+fin$Revenue <- as.numeric(fin$Revenue)
+fin$Growth <- as.numeric(fin$Growth)  
+  
+str(fin) 
+summary(fin)
+
+
+#--------------- S2_15: Dealing with Missing Data
+#1. Predict with 100% accuracy
+#2. Leave record as is
+#3. Remove record entirely
+#4. Replace with mean or median
+#5. Fill in by exploring correlations and similarities
+#6. Introduce dumym varriable for "Missigness"
+
+#--------------- S2_16: What is NA?
+
+?NA
+
+TRUE #1
+FALSE #0
+NA
+
+TRUE == 1 # TRUE since 1 is a representation of TRUE
+FALSE == 0 # TRUE since 0 is a representation of FALSE
+
+NA == TRUE # This is actually NA
+NA == FALSE # This is actually NA
+NA == NA # This is actually NA
+NA == 15 # NA
+
+#--------------- S2_17: An Elegent Way to Locate Missing Data
+#fin <- read.csv("Future 500.csv", na.strings=c("")) # import blanks as NA
+head(fin, 24)
+#<NA> because it is a factor
+fin[!complete.cases(fin),] #check if there is NA, it DOES not find where field appears blanks or an empty space
+
+str(fin)
+
+
+#--------------- S2_18: Data Filters: which() for Non-Missing Data 
+head(fin)
+fin[fin$Revenue==9746272,] #picks up NAs
+
+which(fin$Revenue==9746272) # only picks TRUE values
+
+fin[which(fin$Revenue==9746272),]
+
+
+head(fin)
+
+fin[fin$Employees == 45,]
+fin[which(fin$Employees == 45),]
+    
+#--------------- S2_19: Data Filters: is.na() for Missing Data
+
+head(fin, 24)
+
+
+fin$Expenses == NA
+fin[fin$Expenses == NA,] # Wrong way, doesn't work
+
+is.na()
+
+a <- c(1,24,543,NA,76,45,NA)
+is.na(a)
+
+is.na(fin$Expenses)
+
+fin[is.na(fin$Expenses),]
+
+
+#--------------- S2_20: Removing records with missing data
+
+fin_backup <- fin
+
+fin[!complete.cases(fin),]
+fin[is.na(fin$Industry),]
+
+fin[!is.na(fin$Industry),] #opposite
+
+
+fin <- fin[!is.na(fin$Industry),]
+
+
+#--------------- S2_21: Resetting the dataframe index
+fin
+options(max.print=1000000)
+
+rownames(fin) <- 1:nrow(fin)
+fin
+
+rownames(fin) <- NULL #faster way to reset dataframe index
+fin
+
+#--------------- S2_22: Replacing missing Data: Factual Analysis Method
+
+fin[!complete.cases(fin),]
+
+
+fin[is.na(fin$State),]
+
+fin[is.na(fin$State) & fin$City=="New York", "State"] <- "NY"
+#check
+fin[c(11,377),]
+
+fin[is.na(fin$State) & fin$City=="San Francisco",]
+fin[is.na(fin$State) & fin$City=="San Francisco", "State"] <- "CA"
+fin[c(82,265),]
+
+
+#--------------- S2_23: Replacing Missing Data: Median Imputation Method (Part 1)
+
+fin[!complete.cases(fin),]
+median(fin$Employees, na.rm=TRUE)
+median(fin[,"Employees"], na.rm=TRUE)
+
+median_empl_retail <- median(fin[fin$Industry=="Retail","Employees"], na.rm=TRUE)
+median_empl_retail 
+
+fin[is.na(fin$Employees) & fin$Industry=="Retail","Employees"] <- median_empl_retail 
+fin[3,]
+
+#Financial Services
+median_empl_FS <- median(fin[fin$Industry=="Financial Services","Employees"], na.rm=TRUE)
+median_empl_FS 
+
+fin[is.na(fin$Employees) & fin$Industry=="Financial Services","Employees"] <- median_empl_FS 
+fin[330,]
+
+#--------------- S2_24: Replacing Missing Data: Median Imputation Method (Part 2)
+
+fin[!complete.cases(fin),]
+
+med_growth_constr <- median(fin[fin$Industry == "Construction", "Growth"], na.rm=TRUE)
+med_growth_constr
+
+
+fin[is.na(fin$Growth) & fin$Industry =="Construction", "Growth"] <- med_growth_constr
+fin[8,]
+
+
+#--------------- S2_25: Replacing Missing Data: Median Imputation Method (Part 3)
+
+fin[!complete.cases(fin),]
+
+
+med_rev_constr <- median(fin[fin$Industry=="Construction", "Revenue"], na.rm=TRUE)
+med_rev_constr
+
+fin[fin$Industry=="Construction" & is.na(fin$Revenue),"Revenue"] <- med_rev_constr
+
+fin[c(8,42),]
+
+
+med_exp_constr <- median(fin[fin$Industry=="Construction","Expenses"], na.rm=TRUE)
+med_exp_constr
+
+fin[is.na(fin$Expenses) & is.na(fin$Profit) & fin$Industry=="Construction","Expenses"] <- med_exp_constr
+fin[c(8,42),]
+
+
+
+#--------------- S2_26: Replacing Missing Data: Deriving Values Method
+#Revenue - Expenses = Profit
+#Expenses = Revenue - Profit
+fin[!complete.cases(fin),]
+
+fin[is.na(fin$Profit),"Profit"] <- fin[is.na(fin$Profit), "Revenue"] - fin[is.na(fin$Profit), "Expenses"]
+fin[c(8,42),]
+
+fin[!complete.cases(fin),]
+
+
+fin[is.na(fin$Expenses),"Expenses"] <- fin[is.na(fin$Expenses),"Revenue"] - fin[is.na(fin$Expenses),"Profit"]
+fin[15,]
+
+
+fin[!complete.cases(fin),] #Inception is not needed so we can leave that as NA
+
+
+#--------------- S2_27: Visualizing results
+library(ggplot2)
+
+#A scatterplot classified by industry showing revenue, expenses, profit
+p <- ggplot(data=fin)
+
+p + geom_point(aes(x=Revenue, y=Expenses, 
+               colour=Industry, size=Profit))
+
+
+#A scatterplot that includes industry trends for the expenses~revenue relationship
+d <- ggplot(data=fin,aes(x=Revenue, y=Expenses,
+                         colour=Industry)) 
+d + geom_point() +
+    geom_smooth(fill=NA, size=1.2)
+
+#BoxPlots showing growth by industry
+f <- ggplot(data=fin,aes(x=Industry, y=Growth,
+                         colour=Industry))
+f + geom_boxplot(size=1)
+
+
+#Extra
+f + geom_jitter() +
+    geom_boxplot(size=1, alpha =0.5, outlier.color=NA)
+
+
+
